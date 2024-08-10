@@ -87,7 +87,7 @@ else:
         return x.encode('ascii')
 
 from scripts.create_user import create_user as _sass_from_named_key
-        
+
 # Windows version of Python does not provide it
 # for compatibility with older versions of Windows.
 if not hasattr(socket, 'inet_pton'):
@@ -175,15 +175,17 @@ class IP2Location(object):
 
     def __init__(self, filename=None,mode='FILE_IO', **kwargs):
         ''' Creates a database object and opens a file if filename is given
-            
+
         '''
         self.mode = mode
-        self._prepare(kwargs)
-        
+
+        if kwargs.get("new_compression"):
+            self._prepare(kwargs.pop("new_compression"))
+
         if filename is not None:
             if os.path.isfile(filename) == False:
                 raise ValueError("The database file does not seem to exist.")
-        
+
         if filename:
             self.open(filename)
 
@@ -350,7 +352,7 @@ class IP2Location(object):
             Arguments:
 
             addr: IPv4 or IPv6 address as a string
-     
+
             Returns IP2LocationRecord or None if address not found in file
         '''
         return self._get_record(addr)
@@ -361,15 +363,14 @@ class IP2Location(object):
             Arguments:
 
             addr: IPv4 or IPv6 address as a string
-     
+
             Returns IP2LocationRecord or None if address not found in file
-            
+
             This function will be obselete in future.
         '''
         return self._get_record(addr)
 
-    def _prepare(self, **kwargs):
-        compile_params = kwargs.pop('new_compression')
+    def _prepare(self, compile_params):
         if compile_params:
             if not get_event_loop().is_running():
                 run(self._format(compile_params[0], compile_params[1]))
@@ -400,7 +401,7 @@ class IP2Location(object):
         if ipv == 4:
             return self._readi(offset)
         elif ipv == 6:
-            a, b, c, d = self._readi(offset), self._readi(offset + 4), self._readi(offset + 8), self._readi(offset + 12) 
+            a, b, c, d = self._readi(offset), self._readi(offset + 4), self._readi(offset + 8), self._readi(offset + 12)
             return (d << 96) | (c << 64) | (b << 32) | a
 
     def _readips(self, offset, ipv):
@@ -462,7 +463,7 @@ class IP2Location(object):
 
         if _TIMEZONE_POSITION[self._dbtype] != 0:
             rec.timezone = self._reads(struct.unpack('<I', raw_positions_row[((_TIMEZONE_POSITION[self._dbtype]-1) * 4 - 4) : ((_TIMEZONE_POSITION[self._dbtype]-1) * 4)])[0] + 1)
-                
+
         if _NETSPEED_POSITION[self._dbtype] != 0:
             rec.netspeed = self._reads(struct.unpack('<I', raw_positions_row[((_NETSPEED_POSITION[self._dbtype]-1) * 4 - 4) : ((_NETSPEED_POSITION[self._dbtype]-1) * 4)])[0] + 1)
 
@@ -486,7 +487,7 @@ class IP2Location(object):
 
         if _MOBILEBRAND_POSITION[self._dbtype] != 0:
             rec.mobile_brand = self._reads(struct.unpack('<I', raw_positions_row[((_MOBILEBRAND_POSITION[self._dbtype]-1) * 4 - 4) : ((_MOBILEBRAND_POSITION[self._dbtype]-1) * 4)])[0] + 1)
-                
+
         if _ELEVATION_POSITION[self._dbtype] != 0:
             rec.elevation = self._reads(struct.unpack('<I', raw_positions_row[((_ELEVATION_POSITION[self._dbtype]-1) * 4 - 4) : ((_ELEVATION_POSITION[self._dbtype]-1) * 4)])[0] + 1)
 
@@ -563,7 +564,7 @@ class IP2Location(object):
         raw_data = self._f.read(data_length)
         return ((struct.unpack('<L', raw_data[12:16])[0] << 96) | (struct.unpack('<L', raw_data[8:12])[0] << 64) | (struct.unpack('<L', raw_data[4:8])[0] << 32) | struct.unpack('<L', raw_data[0:4])[0], (struct.unpack('<L', raw_data[data_length-4:data_length])[0] << 96) | (struct.unpack('<L', raw_data[data_length-8:data_length-4])[0] << 64) | (struct.unpack('<L', raw_data[data_length-12:data_length-8])[0] << 32) | struct.unpack('<L', raw_data[data_length-16:data_length-12])[0])
 
-    def _parse_addr(self, addr): 
+    def _parse_addr(self, addr):
         ''' Parses address and returns IP version. Raises exception on invalid argument '''
         ipv = 0
         ipnum = -1
@@ -610,7 +611,7 @@ class IP2Location(object):
                     ipv = 4
                     ipnum = ~ ipnum
                     ipnum = ipnum % 4294967296
-                # reformat ipv4 address in ipv6 
+                # reformat ipv4 address in ipv6
                 elif ((ipnum >= 281470681743360) and (ipnum <= 281474976710655)):
                     ipv = 4
                     ipnum = ipnum - 281470681743360
@@ -628,7 +629,7 @@ class IP2Location(object):
                 ipv = 0
                 ipnum = -1
         return ipv, ipnum
-        
+
     def _get_record(self, ip):
         self.original_ip = ip
         low = 0
